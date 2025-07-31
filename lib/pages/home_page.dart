@@ -1,66 +1,69 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: HomePage(),
-    );
-  }
-}
+import 'login_page.dart';
 
 class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Homepage'),
-        backgroundColor: Colors.purple,
+        title: const Text('Homepage'),
+        backgroundColor: Colors.deepPurple,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF2B0B4E), Colors.black],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Olá, TesterApp123',
-              style: TextStyle(color: Colors.white, fontSize: 24),
+            const SizedBox(height: 20),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Olá, TesterApp123',
+                style: TextStyle(fontSize: 24, color: Colors.white),
+              ),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {},
-              child: Text('Fazer Report'),
-            ),
-            ElevatedButton(
-              onPressed: () {},
-              child: Text('Meus Report'),
-            ),
-            ElevatedButton(
-              onPressed: () {},
-              child: Text('Meu Perfil'),
-            ),
-            ElevatedButton(
-              onPressed: () {},
-              child: Text('Termos de uso'),
-            ),
+            const SizedBox(height: 20),
+            _buildButton(context, 'Fazer Report', 'Fazer um novo report'),
+            _buildButton(context, 'Meus Report', 'Visualizar os reports já feitos'),
+            _buildButton(context, 'Meu Perfil', 'Visualize e edite suas informações'),
+            _buildButton(context, 'Termos de uso', 'Leia os termos de uso do aplicativo'),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: Icon(Icons.add),
+        onPressed: () {
+          // Ação ao pressionar o botão flutuante
+        },
+        child: const Icon(Icons.add),
         backgroundColor: Colors.purple,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.report), label: 'Meus Reports'),
-        ],
+    );
+  }
+
+  Widget _buildButton(BuildContext context, String title, String subtitle) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white12,
+      child: ListTile(
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        onTap: () {
+          // Ação ao pressionar o card (pode ser navegação para outra página, etc.)
+        },
       ),
     );
   }
