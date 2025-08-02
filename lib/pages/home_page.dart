@@ -120,13 +120,28 @@ class HomePage extends StatelessWidget {
                       height: 55,
                       width: 55,
                       decoration: BoxDecoration(
-                        color: Colors.purple,
+                        color: Color(0xFF9747FF),
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.add, color: Colors.white),
                         onPressed: () {
-                          // ação do botão central
+  Navigator.push(
+    context,
+    PageRouteBuilder(
+      pageBuilder: (_, __, ___) => const FazerReportPage(),
+      transitionsBuilder: (_, animation, __, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        var curve = Curves.ease;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    ),
+  );
+
                         },
                       ),
                     ),

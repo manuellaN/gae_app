@@ -60,7 +60,7 @@ class TermosUsoPage extends StatelessWidget {
                   'Do aplicativo',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF9360FF),
+                    color: Color(0xFF9747FF),
                   ),
                 ),
                 const SizedBox(height: 8),
