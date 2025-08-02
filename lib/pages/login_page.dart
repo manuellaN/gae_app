@@ -35,15 +35,18 @@ class _LoginPageState extends State<LoginPage> {
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
+      String username = email.split('@')[0]; // pega antes do @ como username
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (context) => HomePage(username: username)),
       );
     }
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -67,10 +70,10 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 100),
               Text(
                 'Faça login',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -86,7 +89,10 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: InputDecoration(
                   hintText: 'E-mail',
                   hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.person_outline, color: Colors.white54),
+                  prefixIcon: const Icon(
+                    Icons.person_outline,
+                    color: Colors.white54,
+                  ),
                   filled: true,
                   fillColor: Colors.white10,
                   border: OutlineInputBorder(
@@ -108,10 +114,15 @@ class _LoginPageState extends State<LoginPage> {
                 decoration: InputDecoration(
                   hintText: 'Senha',
                   hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: Colors.white54,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.white54,
                     ),
                     onPressed: () {
