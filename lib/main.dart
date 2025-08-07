@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
 import 'pages/fazer_report_page.dart';
 import 'pages/meus_reports_page.dart';
-import 'pages/perfil_page.dart';
 import 'pages/termos_uso_page.dart';
 
 void main() {
@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
+        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       ),
       // Tela inicial
       initialRoute: '/login',
@@ -29,7 +30,6 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomePage(username: '',),
         '/fazer-report': (context) => const FazerReportPage(),
         '/meus-reports': (context) => const MeusReportsPage(),
-        '/perfil': (context) => const PerfilPage(),
         '/termos-uso': (context) => const TermosUsoPage(),
       },
     );

@@ -14,8 +14,13 @@ class ReportService {
     _reports.add(report);
   }
 
+  void updateStatus(int index, String newStatus) {
+    if (index >= 0 && index < _reports.length) {
+      _reports[index].status = newStatus;
+    }
+  }
+
   void clearReports() {
     _reports.clear();
   }
 }
-

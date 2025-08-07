@@ -6,6 +6,7 @@ class Report {
   final String location;
   final DateTime date;
   final List<File> images;
+  String status; // pendente, em_andamento, concluido
 
   Report({
     required this.title,
@@ -13,5 +14,6 @@ class Report {
     required this.location,
     required this.date,
     required this.images,
+    this.status = 'pendente', // default
   });
 }
