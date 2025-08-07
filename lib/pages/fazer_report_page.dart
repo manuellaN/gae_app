@@ -22,11 +22,11 @@ class _FazerReportPageState extends State<FazerReportPage> {
 
   // Simulação de locais vindos do ADM
   final List<String> _locations = [
-    'Recepção',
-    'Estacionamento',
+    'Pátio',
+    'Salas',
     'Banheiro',
-    'Corredor A',
-    'Área externa',
+    'Laboratórios',
+    'Auditório',
   ];
   String? _selectedLocation;
 

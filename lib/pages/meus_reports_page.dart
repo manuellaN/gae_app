@@ -58,9 +58,9 @@ class _MeusReportsPageState extends State<MeusReportsPage>
   @override
   Widget build(BuildContext context) {
     final reports = ReportService().reports.reversed.toList();
-    final pendentes = reports.where((r) => r.status == 'pendente').toList();
-    final andamento = reports.where((r) => r.status == 'em_andamento').toList();
-    final concluidos = reports.where((r) => r.status == 'concluido').toList();
+    final aberto = reports.where((r) => r.status == 'aberto').toList();
+    final em_analise = reports.where((r) => r.status == 'em_análise').toList();
+    final resolvido = reports.where((r) => r.status == 'resolvido').toList();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -132,9 +132,9 @@ class _MeusReportsPageState extends State<MeusReportsPage>
                     unselectedLabelColor: Colors.white54,
                     labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
                     tabs: const [
-                      Tab(text: 'Pendente'),
-                      Tab(text: 'Em andamento'),
-                      Tab(text: 'Concluído'),
+                      Tab(text: 'Em aberto'),
+                      Tab(text: 'Em análise'),
+                      Tab(text: 'Resolvido'),
                     ],
                   ),
                 ),
@@ -145,9 +145,9 @@ class _MeusReportsPageState extends State<MeusReportsPage>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildReportList(pendentes),
-                    _buildReportList(andamento),
-                    _buildReportList(concluidos),
+                    _buildReportList(aberto),
+                    _buildReportList(em_analise),
+                    _buildReportList(resolvido),
                   ],
                 ),
               ),

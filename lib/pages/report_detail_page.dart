@@ -19,7 +19,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   ];
 
   // Simulação de status do report
-  final List<String> _statusOptions = ['Pendente', 'Em andamento', 'Concluído'];
+  final List<String> _statusOptions = ['Aberto', 'Em análise', 'Resolvido'];
 
   late String _statusSimulado;
 
@@ -32,9 +32,9 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
   Color _statusColor() {
     switch (_statusSimulado) {
-      case 'Concluído':
+      case 'Resolvido':
         return Colors.green;
-      case 'Em andamento':
+      case 'Em análise':
         return Colors.orange;
       default:
         return Colors.redAccent;

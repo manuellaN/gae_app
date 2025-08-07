@@ -14,6 +14,6 @@ class Report {
     required this.location,
     required this.date,
     required this.images,
-    this.status = 'pendente', // default
+    this.status = 'aberto', // default
   });
 }
