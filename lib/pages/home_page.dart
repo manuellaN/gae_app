@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'fazer_report_page.dart';
 import 'meus_reports_page.dart';
 import 'termos_uso_page.dart';
+import 'redefinir_senha_page.dart';
 
 class HomePage extends StatefulWidget {
   final String username;
@@ -122,6 +123,17 @@ class _HomePageState extends State<HomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const MeusReportsPage(),
+                    ),
+                  ),
+                ),
+                 _buildButton(
+                  context,
+                  'Redefinir Senha',
+                  'Realize a redefinição da sua senha',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RedefinirSenhaPage(),
                     ),
                   ),
                 ),
