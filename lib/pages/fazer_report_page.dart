@@ -44,9 +44,12 @@ class _FazerReportPageState extends State<FazerReportPage> {
 
   /// Enviar reporte
   Future<void> _sendReport() async {
-    if (_categoryController.text.isEmpty || _descriptionController.text.isEmpty) {
+    if (_categoryController.text.isEmpty ||
+        _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha ao menos a categoria e descrição!')),
+        const SnackBar(
+          content: Text('Preencha ao menos a categoria e descrição!'),
+        ),
       );
       return;
     }
@@ -96,7 +99,15 @@ class _FazerReportPageState extends State<FazerReportPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.black87,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Cancelar reporte?', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18), textAlign: TextAlign.center,),
+        title: Text(
+          'Cancelar reporte?',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+          textAlign: TextAlign.center,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -114,7 +125,10 @@ class _FazerReportPageState extends State<FazerReportPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Sim', style: GoogleFonts.inter(color: Colors.redAccent)),
+            child: Text(
+              'Sim',
+              style: GoogleFonts.inter(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -126,9 +140,9 @@ class _FazerReportPageState extends State<FazerReportPage> {
       _attachedImages.clear();
       setState(() => _selectedLocation = null);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reporte cancelado.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Reporte cancelado.')));
     }
   }
 
@@ -149,10 +163,19 @@ class _FazerReportPageState extends State<FazerReportPage> {
                     onTap: () => Navigator.pop(context),
                     child: Row(
                       children: [
-                        const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                        const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         const SizedBox(width: 6),
-                        Text('Voltar',
-                            style: GoogleFonts.inter(color: Colors.white, fontSize: 16)),
+                        Text(
+                          'Voltar',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
                         const SizedBox(width: 6),
                         const Icon(Icons.home, color: Colors.white, size: 18),
                       ],
@@ -176,11 +199,18 @@ class _FazerReportPageState extends State<FazerReportPage> {
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.add_circle_outline, color: Colors.white, size: 40),
+                            const Icon(
+                              Icons.add_circle_outline,
+                              color: Colors.white,
+                              size: 40,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'Clique para anexar imagens',
-                              style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         )
@@ -190,7 +220,9 @@ class _FazerReportPageState extends State<FazerReportPage> {
                           itemCount: _attachedImages.length,
                           itemBuilder: (context, index) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.file(
@@ -228,11 +260,14 @@ class _FazerReportPageState extends State<FazerReportPage> {
                 ),
               ),
               const SizedBox(height: 32), // espaçamento maior antes dos campos
-
               // Campos de texto e dropdown
               _buildTextField(_categoryController, 'Categoria'),
               const SizedBox(height: 20),
-              _buildTextField(_descriptionController, 'Descreva o problema', maxLines: 5),
+              _buildTextField(
+                _descriptionController,
+                'Descreva o problema',
+                maxLines: 5,
+              ),
               const SizedBox(height: 20),
               _buildDropdownLocation(),
               const SizedBox(height: 40),
@@ -249,12 +284,20 @@ class _FazerReportPageState extends State<FazerReportPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: const Color(0xFF9747FF),
-                        side: const BorderSide(color: Color(0xFF9747FF), width: 2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        side: const BorderSide(
+                          color: Color(0xFF9747FF),
+                          width: 2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
                       child: _isSending
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : Text('Confirmar', style: GoogleFonts.inter(fontSize: 16)),
+                          : Text(
+                              'Confirmar',
+                              style: GoogleFonts.inter(fontSize: 16),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 24),
@@ -266,9 +309,14 @@ class _FazerReportPageState extends State<FazerReportPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white10,
                         foregroundColor: Colors.white54,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
-                      child: Text('Cancelar', style: GoogleFonts.inter(fontSize: 16)),
+                      child: Text(
+                        'Cancelar',
+                        style: GoogleFonts.inter(fontSize: 16),
+                      ),
                     ),
                   ),
                 ],
@@ -281,7 +329,11 @@ class _FazerReportPageState extends State<FazerReportPage> {
   }
 
   /// Campo de texto estilizado
-  Widget _buildTextField(TextEditingController controller, String label, {int maxLines = 1}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -305,7 +357,10 @@ class _FazerReportPageState extends State<FazerReportPage> {
           borderSide: const BorderSide(color: Color(0xFF9747FF), width: 2),
           borderRadius: BorderRadius.circular(12),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
     );
   }
@@ -332,13 +387,18 @@ class _FazerReportPageState extends State<FazerReportPage> {
           borderSide: const BorderSide(color: Color(0xFF9747FF), width: 2),
           borderRadius: BorderRadius.circular(12),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
       items: _locations
-          .map((loc) => DropdownMenuItem(
-                value: loc,
-                child: Text(loc, style: GoogleFonts.inter(color: Colors.white)),
-              ))
+          .map(
+            (loc) => DropdownMenuItem(
+              value: loc,
+              child: Text(loc, style: GoogleFonts.inter(color: Colors.white)),
+            ),
+          )
           .toList(),
       onChanged: (value) => setState(() => _selectedLocation = value),
     );

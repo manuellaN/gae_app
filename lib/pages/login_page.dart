@@ -1,8 +1,7 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:gae_app/pages/redefinir_senha_page.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/api_service.dart';
+import '../services/auth_storage.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -26,24 +25,31 @@ class _LoginPageState extends State<LoginPage> {
       _showMessage('Por favor, preencha todos os campos.');
       return;
     }
-    if (!email.contains('@')) {
-      _showMessage('Digite um e-mail válido.');
-      return;
-    }
-    if (password.length < 6) {
-      _showMessage('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
 
-    if (mounted) {
-      String username = email.split('@')[0];
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage(username: username)),
-      );
+    try {
+      final result = await ApiService.login(email, password);
+
+      if (result.containsKey("token")) {
+        final token = result["token"];
+        await AuthStorage.saveToken(token);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(username: email.split("@")[0]),
+            ),
+          );
+        }
+      } else {
+        _showMessage("Falha no login. Verifique suas credenciais.");
+      }
+    } catch (e) {
+      _showMessage("Erro ao fazer login: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -56,190 +62,127 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // IMAGEM DE FUNDO
-          SizedBox.expand(
-            child: Image.asset('assets/login-bg.jpg', fit: BoxFit.cover),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/login-bg.jpg'),
+            fit: BoxFit.cover,
           ),
-
-          // CAMADA DE GRADIENTE ESCURO + BLUR REAL
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: 3,
-                sigmaY: 3,
-              ), // Aumenta o blur aqui
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(
-                        1.0,
-                      ), // PARTE INFERIOR MAIS ESCURA
-                      const Color(0xFF2B0B4E).withOpacity(0.7),
-                    ],
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 55, vertical: 70),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 160),
+                Text(
+                  'Faça login',
+                  style: GoogleFonts.inter(
+                    fontSize: 58,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-              ),
-            ),
-          ),
+                const SizedBox(height: 8),
+                Text(
+                  'Para continuar',
+                  style: GoogleFonts.inter(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 120),
 
-          // CONTEÚDO
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 55, vertical: 70),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 160),
-
-                  // TÍTULO
-                  Text(
-                    'Faça login',
-                    style: GoogleFonts.inter(
-                      fontSize: 58,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                // Campo de email
+                TextField(
+                  controller: _emailController,
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'Usuário ou e-mail',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.white54,
+                    ),
+                    filled: true,
+                    fillColor: Colors.black.withOpacity(0.4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(color: Colors.white24),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Para continuar',
-                    style: GoogleFonts.inter(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white70,
+                ),
+                const SizedBox(height: 24),
+
+                // Campo de senha
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Senha',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.white54,
                     ),
-                  ),
-
-                  const SizedBox(height: 120),
-
-                  // CAMPO EMAIL
-                  TextField(
-                    controller: _emailController,
-                    style: const TextStyle(color: Colors.white),
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: 'Usuário ou e-mail',
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      prefixIcon: const Icon(
-                        Icons.person_outline,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: Colors.white54,
                       ),
-                      filled: true,
-                      fillColor: Colors.black.withOpacity(0.4),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Colors.white24),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Colors.white24),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Color(0xFF9360FF)),
-                      ),
+                      onPressed: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
+                    ),
+                    filled: true,
+                    fillColor: Colors.black.withOpacity(0.4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(color: Colors.white24),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 60),
 
-                  // CAMPO SENHA
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Senha',
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      prefixIcon: const Icon(
-                        Icons.lock_outline,
-                        color: Colors.white54,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.white54,
+                // Botão de login
+                Center(
+                  child: SizedBox(
+                    width: 180,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: const Color(0xFF9360FF),
+                        side: const BorderSide(
+                          color: Color(0xFF9360FF),
+                          width: 2,
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
-                      filled: true,
-                      fillColor: Colors.black.withOpacity(0.4),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Colors.white24),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Colors.white24),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: const BorderSide(color: Color(0xFF9360FF)),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              'Confirmar',
+                              style: GoogleFonts.inter(fontSize: 22),
+                            ),
                     ),
                   ),
-                  const SizedBox(height: 60),
-
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RedefinirSenhaPage(),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'Esqueceu a senha?',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFF9360FF),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-
-                  // BOTÃO CONFIRMAR
-                  Center(
-                    child: SizedBox(
-                      width: 180,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: const Color(0xFF9360FF),
-                          side: const BorderSide(
-                            color: Color(0xFF9360FF),
-                            width: 2,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                'Confirmar',
-                                style: GoogleFonts.inter(fontSize: 22),
-                              ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

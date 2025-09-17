@@ -4,11 +4,11 @@ import 'fazer_report_page.dart';
 import 'meus_reports_page.dart';
 import 'termos_uso_page.dart';
 import 'redefinir_senha_page.dart';
+import '../services/api_service.dart';
+import '../services/auth_storage.dart';
 
 class HomePage extends StatefulWidget {
-  final String username;
-
-  const HomePage({super.key, required this.username});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -16,6 +16,38 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  String? username;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final token = await AuthStorage.getToken();
+      if (token == null) {
+        setState(() {
+          username = "Usuário";
+          isLoading = false;
+        });
+        return;
+      }
+
+      final userData = await ApiService.getUserProfile(token);
+      setState(() {
+        username = userData["name"] ?? "Usuário";
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        username = "Erro ao carregar";
+        isLoading = false;
+      });
+    }
+  }
 
   void _onBottomNavTap(int index) {
     setState(() => _currentIndex = index);
@@ -23,7 +55,6 @@ class _HomePageState extends State<HomePage> {
     if (index == 0) {
       // Home
     } else if (index == 1) {
-      // Botão central "+"
       Navigator.push(
         context,
         PageRouteBuilder(
@@ -51,6 +82,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _logout() async {
+    await AuthStorage.clearToken();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, "/login");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,91 +104,100 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).size.height * 0.12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top bar
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: 40,
-                    left: 40,
-                    right: 40,
-                    bottom: 20,
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).size.height * 0.12,
                   ),
-                  child: Text(
-                    'Homepage',
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF9360FF),
-                      fontSize: 14),
-                  ),
-                ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top bar
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: 40,
+                          left: 40,
+                          right: 40,
+                          bottom: 20,
+                        ),
+                        child: Text(
+                          'Homepage',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF9360FF),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
 
-                // Saudação
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'Olá,\n${widget.username}',
-                    style: GoogleFonts.inter(
-                      fontSize: 26,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
+                      // Saudação
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          'Olá,\n$username',
+                          style: GoogleFonts.inter(
+                            fontSize: 26,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
 
-                // Botões em cards
-                _buildButton(
-                  context,
-                  'Fazer Report',
-                  'Realizar um novo report',
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FazerReportPage(),
-                    ),
+                      // Botões em cards
+                      _buildButton(
+                        context,
+                        'Fazer Report',
+                        'Realizar um novo report',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FazerReportPage(),
+                          ),
+                        ),
+                      ),
+                      _buildButton(
+                        context,
+                        'Meus Reports',
+                        'Visualizar os reports já feitos',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MeusReportsPage(),
+                          ),
+                        ),
+                      ),
+                      _buildButton(
+                        context,
+                        'Redefinir Senha',
+                        'Realize a redefinição da sua senha',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RedefinirSenhaPage(),
+                          ),
+                        ),
+                      ),
+                      _buildButton(
+                        context,
+                        'Termos de Uso',
+                        'Leia os termos de uso do aplicativo',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TermosUsoPage(),
+                          ),
+                        ),
+                      ),
+                      _buildButton(
+                        context,
+                        'Sair',
+                        'Encerrar a sessão atual',
+                        _logout,
+                      ),
+                    ],
                   ),
                 ),
-                _buildButton(
-                  context,
-                  'Meus Reports',
-                  'Visualizar os reports já feitos',
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MeusReportsPage(),
-                    ),
-                  ),
-                ),
-                 _buildButton(
-                  context,
-                  'Redefinir Senha',
-                  'Realize a redefinição da sua senha',
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RedefinirSenhaPage(),
-                    ),
-                  ),
-                ),
-                _buildButton(
-                  context,
-                  'Termos de Uso',
-                  'Leia os termos de uso do aplicativo',
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TermosUsoPage(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
 
@@ -236,7 +283,7 @@ class _HomePageState extends State<HomePage> {
               style: GoogleFonts.inter(
                 color: Colors.white70,
                 fontSize: 14,
-                fontWeight: FontWeight.w500, 
+                fontWeight: FontWeight.w500,
               ),
             ),
             onTap: onTap,
