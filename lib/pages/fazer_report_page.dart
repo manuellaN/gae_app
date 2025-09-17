@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/report_model.dart';
+import 'package:http/http.dart' as http;
+
 import 'meus_reports_page.dart';
 
 class FazerReportPage extends StatefulWidget {
@@ -13,21 +15,47 @@ class FazerReportPage extends StatefulWidget {
 }
 
 class _FazerReportPageState extends State<FazerReportPage> {
-  final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
   List<File> _attachedImages = [];
   bool _isSending = false;
 
-  // Simulação de locais vindos do ADM
-  final List<String> _locations = [
-    'Pátio',
-    'Salas',
-    'Banheiro',
-    'Laboratórios',
-    'Auditório',
-  ];
+  // Dropdowns vindos da API
+  List<String> _categories = [];
+  List<String> _locations = [];
+  String? _selectedCategory;
   String? _selectedLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDropdownData();
+  }
+
+  Future<void> _fetchDropdownData() async {
+    try {
+      final localRes = await http.get(Uri.parse("https://restapi.santosdev.site/local"));
+      final categoryRes = await http.get(Uri.parse("https://restapi.santosdev.site/category"));
+
+      if (localRes.statusCode == 200 && categoryRes.statusCode == 200) {
+        final List<dynamic> localJson = jsonDecode(localRes.body);
+        final List<dynamic> categoryJson = jsonDecode(categoryRes.body);
+
+        setState(() {
+          _locations = localJson.map((item) => item["name"].toString()).toList();
+          _categories = categoryJson.map((item) => item["name"].toString()).toList();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erro ao carregar categorias/locais")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro: $e")),
+      );
+    }
+  }
 
   /// Escolher imagens
   Future<void> _pickImages() async {
@@ -43,55 +71,61 @@ class _FazerReportPageState extends State<FazerReportPage> {
 
   /// Enviar reporte
   Future<void> _sendReport() async {
-    if (_categoryController.text.isEmpty ||
+    if (_selectedCategory == null ||
+        _selectedLocation == null ||
         _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preencha ao menos a categoria e descrição!'),
-        ),
+        const SnackBar(content: Text('Preencha todos os campos obrigatórios!')),
       );
       return;
     }
 
     setState(() => _isSending = true);
-    await Future.delayed(const Duration(seconds: 1));
 
-    final newReport = Report(
-      title: _categoryController.text,
-      description: _descriptionController.text,
-      location: _selectedLocation ?? 'Não informado',
-      date: DateTime.now(),
-      images: List.from(_attachedImages),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse("https://restapi.santosdev.site/reports"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "title": _selectedCategory,
+          "description": _descriptionController.text,
+          "location": _selectedLocation,
+          "status": "aberto",
+          "date": DateTime.now().toIso8601String(),
+        }),
+      );
 
-   // ReportService().addReport(newReport);
+      setState(() => _isSending = false);
 
-    setState(() {
-      _isSending = false;
-      _categoryController.clear();
-      _descriptionController.clear();
-      _attachedImages.clear();
-      _selectedLocation = null;
-    });
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Reporte enviado com sucesso!")),
+        );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reporte enviado com sucesso!')),
-    );
-
-    // Redireciona para Meus Reports com transição suave
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (_, animation, __) => const MeusReportsPage(),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 300),
+            pageBuilder: (_, animation, __) => const MeusReportsPage(),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro: ${response.body}")),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSending = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao enviar: $e")),
+      );
+    }
   }
 
-  /// Confirmação de cancelamento
+  /// Cancelar preenchimento
   Future<void> _showCancelDialog() async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -107,15 +141,10 @@ class _FazerReportPageState extends State<FazerReportPage> {
           ),
           textAlign: TextAlign.center,
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Se você cancelar, todas as informações preenchidas serão perdidas.',
-              style: GoogleFonts.inter(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        content: Text(
+          'Se você cancelar, todas as informações preenchidas serão perdidas.',
+          style: GoogleFonts.inter(color: Colors.white70),
+          textAlign: TextAlign.center,
         ),
         actions: [
           TextButton(
@@ -124,24 +153,23 @@ class _FazerReportPageState extends State<FazerReportPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Sim',
-              style: GoogleFonts.inter(color: Colors.redAccent),
-            ),
+            child: Text('Sim', style: GoogleFonts.inter(color: Colors.redAccent)),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      _categoryController.clear();
       _descriptionController.clear();
       _attachedImages.clear();
-      setState(() => _selectedLocation = null);
+      setState(() {
+        _selectedCategory = null;
+        _selectedLocation = null;
+      });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Reporte cancelado.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reporte cancelado.')),
+      );
     }
   }
 
@@ -162,19 +190,10 @@ class _FazerReportPageState extends State<FazerReportPage> {
                     onTap: () => Navigator.pop(context),
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        const Icon(Icons.arrow_back, color: Colors.white, size: 20),
                         const SizedBox(width: 6),
-                        Text(
-                          'Voltar',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
+                        Text('Voltar',
+                            style: GoogleFonts.inter(color: Colors.white, fontSize: 16)),
                         const SizedBox(width: 6),
                         const Icon(Icons.home, color: Colors.white, size: 18),
                       ],
@@ -198,19 +217,12 @@ class _FazerReportPageState extends State<FazerReportPage> {
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.add_circle_outline,
-                              color: Colors.white,
-                              size: 40,
-                            ),
+                            const Icon(Icons.add_circle_outline,
+                                color: Colors.white, size: 40),
                             const SizedBox(height: 8),
-                            Text(
-                              'Clique para anexar imagens',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
+                            Text('Clique para anexar imagens',
+                                style: GoogleFonts.inter(
+                                    color: Colors.white, fontSize: 16)),
                           ],
                         )
                       : ListView.builder(
@@ -219,9 +231,7 @@ class _FazerReportPageState extends State<FazerReportPage> {
                           itemCount: _attachedImages.length,
                           itemBuilder: (context, index) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.file(
@@ -238,7 +248,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
               ),
               const SizedBox(height: 32),
 
-              // Título e subtítulo
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -250,25 +259,28 @@ class _FazerReportPageState extends State<FazerReportPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Não esqueça as principais informações',
-                  style: GoogleFonts.inter(color: Colors.white54),
-                ),
-              ),
-              const SizedBox(height: 32), // espaçamento maior antes dos campos
-              // Campos de texto e dropdown
-              _buildTextField(_categoryController, 'Categoria'),
-              const SizedBox(height: 20),
-              _buildTextField(
-                _descriptionController,
-                'Descreva o problema',
-                maxLines: 5,
+              const SizedBox(height: 32),
+
+              // Dropdown de Categoria
+              _buildDropdown(
+                label: "Categoria",
+                value: _selectedCategory,
+                items: _categories,
+                onChanged: (val) => setState(() => _selectedCategory = val),
               ),
               const SizedBox(height: 20),
-              _buildDropdownLocation(),
+
+              // Descrição
+              _buildTextField(_descriptionController, 'Descreva o problema', maxLines: 5),
+              const SizedBox(height: 20),
+
+              // Dropdown de Local
+              _buildDropdown(
+                label: "Local",
+                value: _selectedLocation,
+                items: _locations,
+                onChanged: (val) => setState(() => _selectedLocation = val),
+              ),
               const SizedBox(height: 40),
 
               // Botões
@@ -283,20 +295,14 @@ class _FazerReportPageState extends State<FazerReportPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: const Color(0xFF9747FF),
-                        side: const BorderSide(
-                          color: Color(0xFF9747FF),
-                          width: 2,
-                        ),
+                        side: const BorderSide(color: Color(0xFF9747FF), width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       child: _isSending
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              'Confirmar',
-                              style: GoogleFonts.inter(fontSize: 16),
-                            ),
+                          : Text('Confirmar', style: GoogleFonts.inter(fontSize: 16)),
                     ),
                   ),
                   const SizedBox(width: 24),
@@ -312,10 +318,7 @@ class _FazerReportPageState extends State<FazerReportPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: Text(
-                        'Cancelar',
-                        style: GoogleFonts.inter(fontSize: 16),
-                      ),
+                      child: Text('Cancelar', style: GoogleFonts.inter(fontSize: 16)),
                     ),
                   ),
                 ],
@@ -327,12 +330,9 @@ class _FazerReportPageState extends State<FazerReportPage> {
     );
   }
 
-  /// Campo de texto estilizado
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label, {
-    int maxLines = 1,
-  }) {
+  /// Campo de texto
+  Widget _buildTextField(TextEditingController controller, String label,
+      {int maxLines = 1}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -340,14 +340,9 @@ class _FazerReportPageState extends State<FazerReportPage> {
       decoration: InputDecoration(
         labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: GoogleFonts.inter(
-          color: Colors.white, // branco inativo
-          fontWeight: FontWeight.w500,
-        ),
-        floatingLabelStyle: GoogleFonts.inter(
-          color: const Color(0xFF9747FF), // roxo ao focar
-          fontWeight: FontWeight.w600,
-        ),
+        labelStyle: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500),
+        floatingLabelStyle:
+            GoogleFonts.inter(color: const Color(0xFF9747FF), fontWeight: FontWeight.w600),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: Colors.white54, width: 2),
           borderRadius: BorderRadius.circular(12),
@@ -356,28 +351,28 @@ class _FazerReportPageState extends State<FazerReportPage> {
           borderSide: const BorderSide(color: Color(0xFF9747FF), width: 2),
           borderRadius: BorderRadius.circular(12),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
 
-  /// Dropdown de Local
-  Widget _buildDropdownLocation() {
+  /// Dropdown estilizado
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
     return DropdownButtonFormField<String>(
-      value: _selectedLocation,
+      value: value,
       dropdownColor: const Color(0xFF131313),
       style: GoogleFonts.inter(color: Colors.white),
       decoration: InputDecoration(
-        labelText: 'Local',
+        labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: GoogleFonts.inter(color: Colors.white),
-        floatingLabelStyle: GoogleFonts.inter(
-          color: const Color(0xFF9747FF),
-          fontWeight: FontWeight.w600,
-        ),
+        floatingLabelStyle:
+            GoogleFonts.inter(color: const Color(0xFF9747FF), fontWeight: FontWeight.w600),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: Colors.white54, width: 2),
           borderRadius: BorderRadius.circular(12),
@@ -386,20 +381,13 @@ class _FazerReportPageState extends State<FazerReportPage> {
           borderSide: const BorderSide(color: Color(0xFF9747FF), width: 2),
           borderRadius: BorderRadius.circular(12),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      items: _locations
-          .map(
-            (loc) => DropdownMenuItem(
-              value: loc,
-              child: Text(loc, style: GoogleFonts.inter(color: Colors.white)),
-            ),
-          )
+      items: items
+          .map((item) =>
+              DropdownMenuItem(value: item, child: Text(item, style: GoogleFonts.inter())))
           .toList(),
-      onChanged: (value) => setState(() => _selectedLocation = value),
+      onChanged: onChanged,
     );
   }
 }
