@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/auth_storage.dart';
 import 'fazer_report_page.dart';
 import 'meus_reports_page.dart';
 import 'termos_uso_page.dart';
 import 'redefinir_senha_page.dart';
-import '../services/api_service.dart';
-import '../services/auth_storage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,8 +15,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  String? username;
-  bool isLoading = true;
+  Map<String, dynamic>? _user;
 
   @override
   void initState() {
@@ -26,27 +24,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadUser() async {
-    try {
-      final token = await AuthStorage.getToken();
-      if (token == null) {
-        setState(() {
-          username = "Usuário";
-          isLoading = false;
-        });
-        return;
-      }
-
-      final userData = await ApiService.getUserProfile(token);
-      setState(() {
-        username = userData["name"] ?? "Usuário";
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        username = "Erro ao carregar";
-        isLoading = false;
-      });
-    }
+    final savedUser = await AuthStorage.getUser();
+    setState(() {
+      _user = savedUser;
+    });
   }
 
   void _onBottomNavTap(int index) {
@@ -63,14 +44,8 @@ class _HomePageState extends State<HomePage> {
             const begin = Offset(0.0, 1.0);
             const end = Offset.zero;
             var curve = Curves.ease;
-            var tween = Tween(
-              begin: begin,
-              end: end,
-            ).chain(CurveTween(curve: curve));
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: child,
-            );
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            return SlideTransition(position: animation.drive(tween), child: child);
           },
         ),
       );
@@ -82,15 +57,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _logout() async {
-    await AuthStorage.clearToken();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, "/login");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final username = _user?["name"] ?? "Usuário";
+
     return Scaffold(
       backgroundColor: Colors.black,
       extendBody: true,
@@ -104,104 +74,83 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         child: SafeArea(
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).size.height * 0.12,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top bar
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: 40,
-                          left: 40,
-                          right: 40,
-                          bottom: 20,
-                        ),
-                        child: Text(
-                          'Homepage',
-                          style: GoogleFonts.inter(
-                            color: const Color(0xFF9360FF),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-
-                      // Saudação
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
-                        child: Text(
-                          'Olá,\n$username',
-                          style: GoogleFonts.inter(
-                            fontSize: 26,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-
-                      // Botões em cards
-                      _buildButton(
-                        context,
-                        'Fazer Report',
-                        'Realizar um novo report',
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FazerReportPage(),
-                          ),
-                        ),
-                      ),
-                      _buildButton(
-                        context,
-                        'Meus Reports',
-                        'Visualizar os reports já feitos',
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MeusReportsPage(),
-                          ),
-                        ),
-                      ),
-                      _buildButton(
-                        context,
-                        'Redefinir Senha',
-                        'Realize a redefinição da sua senha',
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RedefinirSenhaPage(),
-                          ),
-                        ),
-                      ),
-                      _buildButton(
-                        context,
-                        'Termos de Uso',
-                        'Leia os termos de uso do aplicativo',
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const TermosUsoPage(),
-                          ),
-                        ),
-                      ),
-                      _buildButton(
-                        context,
-                        'Sair',
-                        'Encerrar a sessão atual',
-                        _logout,
-                      ),
-                    ],
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).size.height * 0.12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top bar
+                Padding(
+                  padding: const EdgeInsets.only(top: 40, left: 40, right: 40, bottom: 20),
+                  child: Text(
+                    'Homepage',
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF9360FF),
+                      fontSize: 14,
+                    ),
                   ),
                 ),
+
+                // Saudação
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    'Olá,\n$username',
+                    style: GoogleFonts.inter(
+                      fontSize: 26,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Botões
+                _buildButton(
+                  context,
+                  'Fazer Report',
+                  'Realizar um novo report',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const FazerReportPage()),
+                  ),
+                ),
+                _buildButton(
+                  context,
+                  'Meus Reports',
+                  'Visualizar os reports já feitos',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MeusReportsPage()),
+                  ),
+                ),
+                _buildButton(
+                  context,
+                  'Redefinir Senha',
+                  'Realize a redefinição da sua senha',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RedefinirSenhaPage()),
+                  ),
+                ),
+                _buildButton(
+                  context,
+                  'Termos de Uso',
+                  'Leia os termos de uso do aplicativo',
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TermosUsoPage()),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
 
-      // Bottom Bar suspensa com gradiente translúcido
+      // Bottom Bar suspensa
       bottomNavigationBar: Container(
         margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         decoration: BoxDecoration(
@@ -235,41 +184,24 @@ class _HomePageState extends State<HomePage> {
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: ''),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle, size: 36),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.article_outlined),
-              label: '',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 36), label: ''),
+            BottomNavigationBarItem(icon: Icon(Icons.article_outlined), label: ''),
           ],
         ),
       ),
     );
   }
 
-  /// Card estilizado próximo à imagem
-  Widget _buildButton(
-    BuildContext context,
-    String title,
-    String subtitle,
-    VoidCallback onTap,
-  ) {
+  Widget _buildButton(BuildContext context, String title, String subtitle, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
       child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.88,
         child: Card(
           color: Colors.white10,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 5,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             title: Text(
               title,
               style: GoogleFonts.inter(

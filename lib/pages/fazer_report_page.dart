@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/report_model.dart';
-import '../services/report_service.dart';
 import 'meus_reports_page.dart';
 
 class FazerReportPage extends StatefulWidget {
@@ -65,7 +64,7 @@ class _FazerReportPageState extends State<FazerReportPage> {
       images: List.from(_attachedImages),
     );
 
-    ReportService().addReport(newReport);
+   // ReportService().addReport(newReport);
 
     setState(() {
       _isSending = false;

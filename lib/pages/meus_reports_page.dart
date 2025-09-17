@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/report_service.dart';
-import '../models/report_model.dart';
+import 'package:http/http.dart' as http;
+
 import 'report_detail_page.dart';
 import 'fazer_report_page.dart';
 import 'home_page.dart';
@@ -16,12 +17,40 @@ class MeusReportsPage extends StatefulWidget {
 class _MeusReportsPageState extends State<MeusReportsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _currentIndex = 2; // índice para bottom bar
+  int _currentIndex = 2;
+
+  List<dynamic> reports = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _fetchReports();
+  }
+
+  Future<void> _fetchReports() async {
+    try {
+      final response =
+          await http.get(Uri.parse("https://restapi.santosdev.site/reports"));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          reports = jsonDecode(response.body);
+          isLoading = false;
+        });
+      } else {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Erro ao carregar reports")),
+        );
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro: $e")),
+      );
+    }
   }
 
   @override
@@ -36,7 +65,7 @@ class _MeusReportsPageState extends State<MeusReportsPage>
     if (index == 0) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => HomePage(username: 'TesterApp123')),
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } else if (index == 1) {
       Navigator.push(
@@ -57,11 +86,6 @@ class _MeusReportsPageState extends State<MeusReportsPage>
 
   @override
   Widget build(BuildContext context) {
-    final reports = ReportService().reports.reversed.toList();
-    final aberto = reports.where((r) => r.status == 'aberto').toList();
-    final em_analise = reports.where((r) => r.status == 'em_análise').toList();
-    final resolvido = reports.where((r) => r.status == 'resolvido').toList();
-
     return Scaffold(
       backgroundColor: Colors.black,
       extendBody: true,
@@ -112,8 +136,7 @@ class _MeusReportsPageState extends State<MeusReportsPage>
               ),
               const SizedBox(height: 12),
 
-            
-              // Abas modernas tipo botões
+              // Abas
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -142,21 +165,23 @@ class _MeusReportsPageState extends State<MeusReportsPage>
               const SizedBox(height: 16),
 
               Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildReportList(aberto),
-                    _buildReportList(em_analise),
-                    _buildReportList(resolvido),
-                  ],
-                ),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildReportList("aberto"),
+                          _buildReportList("em_analise"),
+                          _buildReportList("resolvido"),
+                        ],
+                      ),
               ),
             ],
           ),
         ),
       ),
 
-      // Bottom bar igual à da Home
+      // Bottom bar
       bottomNavigationBar: Container(
         margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         decoration: BoxDecoration(
@@ -189,26 +214,19 @@ class _MeusReportsPageState extends State<MeusReportsPage>
           showUnselectedLabels: false,
           type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle, size: 36),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.article_outlined),
-              label: '',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: ''),
+            BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 36), label: ''),
+            BottomNavigationBarItem(icon: Icon(Icons.article_outlined), label: ''),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReportList(List<Report> reports) {
-    if (reports.isEmpty) {
+  Widget _buildReportList(String status) {
+    final filtered = reports.where((r) => r["status"] == status).toList();
+
+    if (filtered.isEmpty) {
       return Center(
         child: Text(
           'Nenhum reporte nesta aba.',
@@ -219,43 +237,33 @@ class _MeusReportsPageState extends State<MeusReportsPage>
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      itemCount: reports.length,
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final report = reports[index];
+        final report = filtered[index];
         return _buildReportCard(report);
       },
     );
   }
 
-  Widget _buildReportCard(Report report) {
+  Widget _buildReportCard(dynamic report) {
     return Card(
       color: Colors.white10,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        leading: report.images.isNotEmpty
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  report.images.first,
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                ),
-              )
-            : Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF9360FF).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.article_outlined,
-                    color: Color(0xFF9360FF), size: 30),
-              ),
+        leading: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: const Color(0xFF9360FF).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.article_outlined,
+              color: Color(0xFF9360FF), size: 30),
+        ),
         title: Text(
-          report.title,
+          report["title"] ?? "Sem título",
           style: GoogleFonts.inter(
               color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
         ),
@@ -264,14 +272,12 @@ class _MeusReportsPageState extends State<MeusReportsPage>
           children: [
             const SizedBox(height: 4),
             Text(
-              report.description.length > 40
-                  ? '${report.description.substring(0, 40)}...'
-                  : report.description,
+              report["description"] ?? "Sem descrição",
               style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 4),
             Text(
-              '${report.date.day}/${report.date.month}/${report.date.year} - Status: ${report.status}',
+              "Status: ${report["status"] ?? "indefinido"}",
               style: GoogleFonts.inter(color: Colors.white38, fontSize: 12),
             ),
           ],
@@ -279,7 +285,9 @@ class _MeusReportsPageState extends State<MeusReportsPage>
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => ReportDetailPage(report: report)),
+            MaterialPageRoute(
+              builder: (_) => ReportDetailPage(report: report),
+            ),
           );
         },
       ),

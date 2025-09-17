@@ -18,40 +18,46 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   void _login() async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
+  String email = _emailController.text.trim();
+  String password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      _showMessage('Por favor, preencha todos os campos.');
+  if (email.isEmpty || password.isEmpty) {
+    _showMessage('Por favor, preencha todos os campos.');
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    final userData = await ApiService.login(email, password);
+
+    // Validação de tipo de usuário
+    final userType = (userData["type"] ?? "").toString().toLowerCase();
+
+    if (userType != "aluno" && userType != "funcionario") {
+      _showMessage("Somente usuários do tipo ALUNO e FUNCIONÁRIO podem acessar o app.");
       return;
     }
 
-    setState(() => _isLoading = true);
+    // Salva usuário localmente
+    await AuthStorage.saveUser(userData);
 
-    try {
-      final result = await ApiService.login(email, password);
-
-      if (result.containsKey("token")) {
-        final token = result["token"];
-        await AuthStorage.saveToken(token);
-
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(username: email.split("@")[0]),
-            ),
-          );
-        }
-      } else {
-        _showMessage("Falha no login. Verifique suas credenciais.");
-      }
-    } catch (e) {
-      _showMessage("Erro ao fazer login: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const HomePage(), // agora não precisa mais passar username
+        ),
+      );
     }
+  } catch (e) {
+    _showMessage("Falha no login: $e");
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
+
+
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(

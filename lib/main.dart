@@ -5,6 +5,7 @@ import 'pages/home_page.dart';
 import 'pages/fazer_report_page.dart';
 import 'pages/meus_reports_page.dart';
 import 'pages/termos_uso_page.dart';
+import 'pages/redefinir_senha_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,11 +28,11 @@ class MyApp extends StatelessWidget {
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
-        '/home': (context) => const HomePage(username: '',),
+        '/home': (context) => const HomePage(),
         '/fazer-report': (context) => const FazerReportPage(),
         '/meus-reports': (context) => const MeusReportsPage(),
         '/termos-uso': (context) => const TermosUsoPage(),
-        '/redefinir-senha': (context) => const TermosUsoPage(),
+        '/redefinir-senha': (context) => const RedefinirSenhaPage(),
       },
     );
   }
