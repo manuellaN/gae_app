@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:gae_app/pages/redefinir_senha_page.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_page.dart';
 
@@ -186,6 +187,24 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 60),
+
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RedefinirSenhaPage(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Esqueceu a senha?',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF9360FF),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
 
                   // BOTÃO CONFIRMAR
                   Center(

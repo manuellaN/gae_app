@@ -31,6 +31,7 @@ class MyApp extends StatelessWidget {
         '/fazer-report': (context) => const FazerReportPage(),
         '/meus-reports': (context) => const MeusReportsPage(),
         '/termos-uso': (context) => const TermosUsoPage(),
+        '/redefinir-senha': (context) => const TermosUsoPage(),
       },
     );
   }
