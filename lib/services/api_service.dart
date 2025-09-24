@@ -3,14 +3,16 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 class ApiService {
   static const String baseUrl = "https://restapi.santosdev.site";
 
   /// =============================
   /// LOGIN DO USUÁRIO
   /// =============================
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
     final url = Uri.parse("$baseUrl/user/login");
 
     final response = await http.post(
@@ -19,10 +21,7 @@ class ApiService {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: jsonEncode({
-        "email": email,
-        "password": password,
-      }),
+      body: jsonEncode({"email": email, "password": password}),
     );
 
     if (response.statusCode == 200) {
@@ -89,37 +88,44 @@ class ApiService {
     } catch (e) {
       throw Exception("Erro ao enviar o reporte: $e");
     }
-
-    Future<List<dynamic>> fetchUserReports() async {
-  final prefs = await SharedPreferences.getInstance();
-  final studentId = prefs.getInt('student_id');
-
-  if (studentId == null) {
-    throw Exception("Usuário não logado.");
   }
 
-  final url = Uri.parse("https://restapi.santosdev.site/problemas/user/$studentId");
-  final response = await http.get(url);
+  /// =============================
+  /// BUSCAR REPORTES DO USUÁRIO
+  /// =============================
+  static Future<List<dynamic>> fetchUserReports() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userString = prefs.getString("user");
 
-  if (response.statusCode == 200) {
-    final json = jsonDecode(response.body);
+      if (userString == null) {
+        print("Usuário não encontrado no SharedPreferences.");
+        throw Exception("Usuário não logado.");
+      }
 
-    // Se for uma lista diretamente:
-    if (json is List) {
-      return json;
+      final user = jsonDecode(userString);
+      final studentId = user['id'];
+
+      final url = Uri.parse(
+        "https://restapi.santosdev.site/problemas/user/$studentId",
+      );
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+
+        if (json is List) {
+          return json;
+        } else if (json is Map && json["data"] is List) {
+          return json["data"];
+        }
+        return [];
+      } else {
+        throw Exception("Erro ao buscar reports: ${response.body}");
+      }
+    } catch (e) {
+      print("Erro no fetchUserReports: $e");
+      return [];
     }
-
-    // Se vier dentro de um campo "data":
-    if (json is Map && json["data"] is List) {
-      return json["data"];
-    }
-
-    return []; // Se não for nada disso, retorna lista vazia
-  } else {
-    throw Exception("Erro ao buscar reports: ${response.body}");
   }
-    }
-  }
-
-  static Future fetchUserReports() async {}
 }

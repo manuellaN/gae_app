@@ -150,14 +150,21 @@ class _MeusReportsPageState extends State<MeusReportsPage> with SingleTickerProv
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildReportList("ABERTO"),
-                          _buildReportList("EM_ANALISE"),
-                          _buildReportList("RESOLVIDO"),
-                        ],
-                      ),
+                    : _reports.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Nenhum reporte encontrado.',
+                              style: GoogleFonts.inter(color: Colors.white54),
+                            ),
+                          )
+                        : TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildReportList("ABERTO"),
+                              _buildReportList("EM_ANALISE"),
+                              _buildReportList("RESOLVIDO"),
+                            ],
+                          ),
               ),
             ],
           ),
