@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:gae_app/services/api_service.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-
 import 'report_detail_page.dart';
 import 'fazer_report_page.dart';
 import 'home_page.dart';
@@ -14,59 +12,41 @@ class MeusReportsPage extends StatefulWidget {
   State<MeusReportsPage> createState() => _MeusReportsPageState();
 }
 
-class _MeusReportsPageState extends State<MeusReportsPage>
-    with SingleTickerProviderStateMixin {
+class _MeusReportsPageState extends State<MeusReportsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _currentIndex = 2;
 
-  List<dynamic> reports = [];
-  bool isLoading = true;
+  List<dynamic> _reports = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchReports();
+    _fetchUserReports();
   }
 
-  Future<void> _fetchReports() async {
+  Future<void> _fetchUserReports() async {
+    setState(() => _isLoading = true);
     try {
-      final response =
-          await http.get(Uri.parse("https://restapi.santosdev.site/reports"));
-
-      if (response.statusCode == 200) {
-        setState(() {
-          reports = jsonDecode(response.body);
-          isLoading = false;
-        });
-      } else {
-        setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Erro ao carregar reports")),
-        );
-      }
+      final data = await ApiService.fetchUserReports();
+      setState(() {
+        _reports = data;
+        _isLoading = false;
+      });
     } catch (e) {
-      setState(() => isLoading = false);
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Erro: $e")),
       );
     }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
   void _onBottomNavTap(int index) {
     setState(() => _currentIndex = index);
 
     if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
     } else if (index == 1) {
       Navigator.push(
         context,
@@ -82,6 +62,12 @@ class _MeusReportsPageState extends State<MeusReportsPage>
         ),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -102,7 +88,7 @@ class _MeusReportsPageState extends State<MeusReportsPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Botão voltar
+              // Voltar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: GestureDetector(
@@ -111,10 +97,7 @@ class _MeusReportsPageState extends State<MeusReportsPage>
                     children: [
                       const Icon(Icons.arrow_back, color: Colors.white, size: 20),
                       const SizedBox(width: 6),
-                      Text(
-                        'Voltar',
-                        style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
-                      ),
+                      Text('Voltar', style: GoogleFonts.inter(color: Colors.white, fontSize: 16)),
                       const SizedBox(width: 6),
                       const Icon(Icons.home, color: Colors.white, size: 18),
                     ],
@@ -155,7 +138,7 @@ class _MeusReportsPageState extends State<MeusReportsPage>
                     unselectedLabelColor: Colors.white54,
                     labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
                     tabs: const [
-                      Tab(text: 'Em aberto'),
+                      Tab(text: 'Aberto'),
                       Tab(text: 'Em análise'),
                       Tab(text: 'Resolvido'),
                     ],
@@ -165,14 +148,14 @@ class _MeusReportsPageState extends State<MeusReportsPage>
               const SizedBox(height: 16),
 
               Expanded(
-                child: isLoading
+                child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildReportList("aberto"),
-                          _buildReportList("em_analise"),
-                          _buildReportList("resolvido"),
+                          _buildReportList("ABERTO"),
+                          _buildReportList("EM_ANALISE"),
+                          _buildReportList("RESOLVIDO"),
                         ],
                       ),
               ),
@@ -181,7 +164,7 @@ class _MeusReportsPageState extends State<MeusReportsPage>
         ),
       ),
 
-      // Bottom bar
+      // Bottom Navigation
       bottomNavigationBar: Container(
         margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         decoration: BoxDecoration(
@@ -223,8 +206,9 @@ class _MeusReportsPageState extends State<MeusReportsPage>
     );
   }
 
+  /// Cria a lista de reports para o status atual
   Widget _buildReportList(String status) {
-    final filtered = reports.where((r) => r["status"] == status).toList();
+    final filtered = _reports.where((r) => (r["status"] ?? "").toUpperCase() == status).toList();
 
     if (filtered.isEmpty) {
       return Center(
@@ -259,11 +243,10 @@ class _MeusReportsPageState extends State<MeusReportsPage>
             color: const Color(0xFF9360FF).withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.article_outlined,
-              color: Color(0xFF9360FF), size: 30),
+          child: const Icon(Icons.article_outlined, color: Color(0xFF9360FF), size: 30),
         ),
         title: Text(
-          report["title"] ?? "Sem título",
+          report["category"] ?? "Sem categoria",
           style: GoogleFonts.inter(
               color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
         ),
@@ -276,6 +259,11 @@ class _MeusReportsPageState extends State<MeusReportsPage>
               style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 4),
+            Text(
+              "Local: ${report["local"] ?? "indefinido"}",
+              style: GoogleFonts.inter(color: Colors.white38, fontSize: 12),
+            ),
+            const SizedBox(height: 2),
             Text(
               "Status: ${report["status"] ?? "indefinido"}",
               style: GoogleFonts.inter(color: Colors.white38, fontSize: 12),

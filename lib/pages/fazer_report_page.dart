@@ -2,9 +2,10 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/api_service.dart'; // ajuste o caminho conforme seu projeto
 import 'meus_reports_page.dart';
 
 class FazerReportPage extends StatefulWidget {
@@ -20,11 +21,12 @@ class _FazerReportPageState extends State<FazerReportPage> {
   List<File> _attachedImages = [];
   bool _isSending = false;
 
-  // Dropdowns vindos da API
-  List<String> _categories = [];
-  List<String> _locations = [];
-  String? _selectedCategory;
-  String? _selectedLocation;
+  // Dados reais da API
+  List<Map<String, dynamic>> _categoriesData = [];
+  List<Map<String, dynamic>> _locationsData = [];
+
+  String? _selectedCategoryName;
+  String? _selectedLocationName;
 
   @override
   void initState() {
@@ -42,8 +44,8 @@ class _FazerReportPageState extends State<FazerReportPage> {
         final List<dynamic> categoryJson = jsonDecode(categoryRes.body);
 
         setState(() {
-          _locations = localJson.map((item) => item["name"].toString()).toList();
-          _categories = categoryJson.map((item) => item["name"].toString()).toList();
+          _locationsData = List<Map<String, dynamic>>.from(localJson);
+          _categoriesData = List<Map<String, dynamic>>.from(categoryJson);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +59,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
     }
   }
 
-  /// Escolher imagens
   Future<void> _pickImages() async {
     final ImagePicker picker = ImagePicker();
     final List<XFile> images = await picker.pickMultiImage();
@@ -69,10 +70,10 @@ class _FazerReportPageState extends State<FazerReportPage> {
     }
   }
 
-  /// Enviar reporte
+  /// ====> NOVO MÉTODO INTEGRADO
   Future<void> _sendReport() async {
-    if (_selectedCategory == null ||
-        _selectedLocation == null ||
+    if (_selectedCategoryName == null ||
+        _selectedLocationName == null ||
         _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preencha todos os campos obrigatórios!')),
@@ -83,40 +84,40 @@ class _FazerReportPageState extends State<FazerReportPage> {
     setState(() => _isSending = true);
 
     try {
-      final response = await http.post(
-        Uri.parse("https://restapi.santosdev.site/reports"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "title": _selectedCategory,
-          "description": _descriptionController.text,
-          "location": _selectedLocation,
-          "status": "aberto",
-          "date": DateTime.now().toIso8601String(),
-        }),
+      // Obter os IDs com base no nome selecionado
+      final selectedCategory = _categoriesData.firstWhere(
+        (cat) => cat['name'] == _selectedCategoryName,
+        orElse: () => throw Exception('Categoria não encontrada'),
+      );
+
+      final selectedLocation = _locationsData.firstWhere(
+        (loc) => loc['name'] == _selectedLocationName,
+        orElse: () => throw Exception('Local não encontrado'),
+      );
+
+      await ApiService.sendProblemReport(
+        description: _descriptionController.text,
+        categoryId: selectedCategory['id'],
+        locationId: selectedLocation['id'],
+        images: _attachedImages,
       );
 
       setState(() => _isSending = false);
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Reporte enviado com sucesso!")),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reporte enviado com sucesso!")),
+      );
 
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 300),
-            pageBuilder: (_, animation, __) => const MeusReportsPage(),
-            transitionsBuilder: (_, animation, __, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro: ${response.body}")),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 300),
+          pageBuilder: (_, animation, __) => const MeusReportsPage(),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      );
     } catch (e) {
       setState(() => _isSending = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +126,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
     }
   }
 
-  /// Cancelar preenchimento
   Future<void> _showCancelDialog() async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -163,8 +163,8 @@ class _FazerReportPageState extends State<FazerReportPage> {
       _descriptionController.clear();
       _attachedImages.clear();
       setState(() {
-        _selectedCategory = null;
-        _selectedLocation = null;
+        _selectedCategoryName = null;
+        _selectedLocationName = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +183,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Botão voltar
               Row(
                 children: [
                   GestureDetector(
@@ -203,7 +202,7 @@ class _FazerReportPageState extends State<FazerReportPage> {
               ),
               const SizedBox(height: 24),
 
-              // Área de anexar imagens
+              // Imagens
               GestureDetector(
                 onTap: _pickImages,
                 child: Container(
@@ -261,29 +260,25 @@ class _FazerReportPageState extends State<FazerReportPage> {
               ),
               const SizedBox(height: 32),
 
-              // Dropdown de Categoria
               _buildDropdown(
                 label: "Categoria",
-                value: _selectedCategory,
-                items: _categories,
-                onChanged: (val) => setState(() => _selectedCategory = val),
+                value: _selectedCategoryName,
+                items: _categoriesData.map((e) => e['name'].toString()).toList(),
+                onChanged: (val) => setState(() => _selectedCategoryName = val),
               ),
               const SizedBox(height: 20),
 
-              // Descrição
               _buildTextField(_descriptionController, 'Descreva o problema', maxLines: 5),
               const SizedBox(height: 20),
 
-              // Dropdown de Local
               _buildDropdown(
                 label: "Local",
-                value: _selectedLocation,
-                items: _locations,
-                onChanged: (val) => setState(() => _selectedLocation = val),
+                value: _selectedLocationName,
+                items: _locationsData.map((e) => e['name'].toString()).toList(),
+                onChanged: (val) => setState(() => _selectedLocationName = val),
               ),
               const SizedBox(height: 40),
 
-              // Botões
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -330,7 +325,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
     );
   }
 
-  /// Campo de texto
   Widget _buildTextField(TextEditingController controller, String label,
       {int maxLines = 1}) {
     return TextField(
@@ -356,7 +350,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
     );
   }
 
-  /// Dropdown estilizado
   Widget _buildDropdown({
     required String label,
     required String? value,
