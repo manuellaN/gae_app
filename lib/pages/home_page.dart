@@ -8,7 +8,7 @@ import '../services/api_service.dart';
 import '../services/auth_storage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required String username});
 
   @override
   State<HomePage> createState() => _HomePageState();
