@@ -83,22 +83,22 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 160),
+                const SizedBox(height: 200),
                 Text(
                   'Faça login',
                   style: GoogleFonts.inter(
-                    fontSize: 58,
+                    fontSize: 55,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 2),
                 Text(
                   'Para continuar',
                   style: GoogleFonts.inter(
                     fontSize: 26,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 120),
@@ -116,9 +116,9 @@ class _LoginPageState extends State<LoginPage> {
                       color: Colors.white54,
                     ),
                     filled: true,
-                    fillColor: Colors.black.withOpacity(0.4),
+                    fillColor: Color(0xff212121),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: const BorderSide(color: Colors.white24),
                     ),
                   ),
@@ -149,20 +149,20 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
                     filled: true,
-                    fillColor: Colors.black.withOpacity(0.4),
+                    fillColor: Color(0xff212121),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: const BorderSide(color: Colors.white24),
                     ),
                   ),
                 ),
-                const SizedBox(height: 60),
+                const SizedBox(height: 40),
 
                 // Botão de login
                 Center(
                   child: SizedBox(
-                    width: 180,
-                    height: 55,
+                    width: 128,
+                    height: 45,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
@@ -173,14 +173,14 @@ class _LoginPageState extends State<LoginPage> {
                           width: 2,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(18),
                         ),
                       ),
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : Text(
                               'Confirmar',
-                              style: GoogleFonts.inter(fontSize: 22),
+                              style: GoogleFonts.inter(fontSize: 15),
                             ),
                     ),
                   ),
