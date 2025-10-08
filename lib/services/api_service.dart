@@ -128,4 +128,79 @@ class ApiService {
       return [];
     }
   }
+
+  /// =============================
+/// BUSCAR DETALHES, FOTOS E MENSAGENS DO PROBLEMA
+/// =============================
+static Future<Map<String, dynamic>> fetchProblemDetail(int problemId) async {
+  final url = Uri.parse("$baseUrl/problemas/$problemId");
+  final response = await http.get(url);
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    // API pode retornar lista ou objeto com campo "data"
+    if (body is Map<String, dynamic>) {
+      // se houver "data" e for Map, retorna body["data"]
+      if (body.containsKey("data") && body["data"] is Map) {
+        return Map<String, dynamic>.from(body["data"]);
+      }
+      return Map<String, dynamic>.from(body);
+    } else {
+      throw Exception("Formato inesperado na resposta de detalhe do problema.");
+    }
+  } else {
+    throw Exception("Erro ao buscar detalhe do problema: ${response.body}");
+  }
+}
+
+static Future<List<String>> fetchProblemPhotos(int problemId) async {
+  final url = Uri.parse("$baseUrl/problemas/photos/$problemId");
+  final response = await http.get(url);
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    // Se a API retornar um array de strings ou um objeto com data
+    if (body is List) {
+      return body.map((e) => e.toString()).toList();
+    } else if (body is Map && body["data"] is List) {
+      return (body["data"] as List).map((e) => e.toString()).toList();
+    } else if (body is Map && body.containsKey("photos") && body["photos"] is List) {
+      return (body["photos"] as List).map((e) => e.toString()).toList();
+    } else {
+      return [];
+    }
+  } else {
+    throw Exception("Erro ao buscar fotos do problema: ${response.body}");
+  }
+}
+
+static Future<List<String>> fetchProblemMessages(int problemId) async {
+  final url = Uri.parse("$baseUrl/messages/problem/$problemId");
+  final response = await http.get(url);
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    if (body is List) {
+      return body.map((e) {
+        // tenta extrair campo 'message' ou 'text' se o objeto for Map
+        if (e is Map) {
+          if (e.containsKey("message")) return e["message"].toString();
+          if (e.containsKey("text")) return e["text"].toString();
+          // fallback: converte map em JSON string curta
+          return jsonEncode(e);
+        }
+        return e.toString();
+      }).toList();
+    } else if (body is Map && body["data"] is List) {
+      return (body["data"] as List).map((e) {
+        if (e is Map) {
+          return e["message"]?.toString() ?? e["text"]?.toString() ?? jsonEncode(e);
+        }
+        return e.toString();
+      }).toList();
+    } else {
+      return [];
+    }
+  } else {
+    throw Exception("Erro ao buscar mensagens do problema: ${response.body}");
+  }
+}
+
 }

@@ -4,7 +4,6 @@ import '../services/auth_storage.dart';
 import 'fazer_report_page.dart';
 import 'meus_reports_page.dart';
 import 'termos_uso_page.dart';
-import 'redefinir_senha_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -124,15 +123,6 @@ class _HomePageState extends State<HomePage> {
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const MeusReportsPage()),
-                  ),
-                ),
-                _buildButton(
-                  context,
-                  'Redefinir Senha',
-                  'Realize a redefinição da sua senha',
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RedefinirSenhaPage()),
                   ),
                 ),
                 _buildButton(
