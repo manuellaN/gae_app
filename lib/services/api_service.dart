@@ -176,36 +176,34 @@ class ApiService {
     }
   }
 
-  /// =============================
-  /// BUSCAR MENSAGENS DO PROBLEMA
-  /// =============================
-  static Future<List<String>> fetchProblemMessages(int problemId) async {
-    final url = Uri.parse("$baseUrl/messages/problem/$problemId");
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final body = jsonDecode(response.body);
-
-      if (body is List) {
-        return body.map((e) {
-          if (e is Map) {
-            return e["message"]?.toString() ?? e["text"]?.toString() ?? jsonEncode(e);
-          }
-          return e.toString();
-        }).toList();
-      } else if (body is Map && body["data"] is List) {
-        return (body["data"] as List).map((e) {
-          if (e is Map) {
-            return e["message"]?.toString() ?? e["text"]?.toString() ?? jsonEncode(e);
-          }
-          return e.toString();
-        }).toList();
-      } else {
-        return [];
-      }
+  // =============================
+// BUSCAR MENSAGENS DO PROBLEMA (retorna lista de maps)
+// =============================
+static Future<List<Map<String, dynamic>>> fetchProblemMessages(int problemId) async {
+  final url = Uri.parse("$baseUrl/messages/problem/$problemId");
+  final response = await http.get(url);
+  if (response.statusCode == 200) {
+    final body = jsonDecode(response.body);
+    List<dynamic> list;
+    if (body is List) {
+      list = body;
+    } else if (body is Map && body["data"] is List) {
+      list = body["data"];
     } else {
-      throw Exception("Erro ao buscar mensagens do problema: ${response.body}");
+      // resposta inesperada -> retorna lista vazia
+      return [];
     }
+
+    // garante que cada item seja Map<String,dynamic>
+    return list.map<Map<String, dynamic>>((e) {
+      if (e is Map<String, dynamic>) return Map<String, dynamic>.from(e);
+      if (e is Map) return Map<String, dynamic>.from(e.cast<String, dynamic>());
+      return {"message": e.toString()};
+    }).toList();
+  } else {
+    throw Exception("Erro ao buscar mensagens do problema: ${response.body}");
   }
+}
+
 
 }

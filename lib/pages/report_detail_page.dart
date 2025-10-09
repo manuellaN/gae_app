@@ -1,9 +1,10 @@
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 
 class ReportDetailPage extends StatefulWidget {
-  final dynamic report;
+  final dynamic report; // mantém compatibilidade com MeusReportsPage
   const ReportDetailPage({super.key, required this.report});
 
   @override
@@ -17,12 +18,13 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
   Map<String, dynamic>? _detail;
   List<String> _photos = [];
-  List<String> _messages = [];
+  List<Map<String, dynamic>> _messages = [];
 
   @override
   void initState() {
     super.initState();
 
+    // extrai id do objeto report passado (compatível com o que você já tem)
     final r = widget.report;
     if (r is Map && (r['id'] != null || r['problem_id'] != null)) {
       _reportId = (r['id'] ?? r['problem_id']) as int;
@@ -44,6 +46,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     });
 
     try {
+      // busca detalhe, fotos e mensagens (mensagens agora são maps)
       final detail = await ApiService.fetchProblemDetail(_reportId);
       final photos = await ApiService.fetchProblemPhotos(_reportId);
       final messages = await ApiService.fetchProblemMessages(_reportId);
@@ -51,7 +54,11 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       setState(() {
         _detail = detail;
         _photos = photos;
-        _messages = messages;
+        _messages = messages.map((m) {
+          // garante que cada item seja Map<String,dynamic>
+          if (m is Map<String, dynamic>) return m;
+          return {'message': m.toString()};
+        }).toList();
         _loading = false;
       });
     } catch (e) {
@@ -62,12 +69,12 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     }
   }
 
-  /// Define cor conforme status
   Color _statusColor(String status) {
-    switch (status.toUpperCase()) {
+    switch (status.toString().toUpperCase()) {
       case 'RESOLVIDO':
         return Colors.green;
       case 'EM ANÁLISE':
+      case 'EM_ANALISE':
         return Colors.orange;
       case 'ABERTO':
         return Colors.redAccent;
@@ -76,80 +83,116 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     }
   }
 
-  /// Formata data (createdAt)
-  String _formatDate() {
-    final d = _detail?['createdAt'] ?? _detail?['created_at'];
-    if (d == null) return '';
+  String _formatDateFromDetail() {
+    final d = _detail?['createdAt'] ?? _detail?['created_at'] ?? widget.report['createdAt'] ?? widget.report['created_at'] ?? widget.report['date'];
+    if (d == null) return "";
     try {
-      final dt = DateTime.parse(d.toString());
+      final dt = d is String ? DateTime.parse(d) : (d is DateTime ? d : DateTime.parse(d.toString()));
+      // formato dd/mm/aaaa
       return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
     } catch (_) {
       return d.toString();
     }
   }
 
-  /// Converte caminho bruto em URL de imagem
+  String _formatMessageDate(String? raw) {
+    if (raw == null) return '';
+    try {
+      final dt = DateTime.parse(raw);
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')} $h:$m';
+    } catch (_) {
+      return raw;
+    }
+  }
+
   String _toPhotoUrl(String raw) {
-    if (raw.startsWith("http")) return raw;
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    // ajuste conforme seu servidor (ex.: /uploads/ ou /storage/)
     return "${ApiService.baseUrl.replaceAll('/api', '')}/uploads/$raw";
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF131313),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: const Color(0xFF131313),
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
       );
     }
 
     if (_error != null) {
       return Scaffold(
         backgroundColor: const Color(0xFF131313),
-        body: Center(
-          child: Text(
-            "Erro: $_error",
-            style: const TextStyle(color: Colors.redAccent),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                        const SizedBox(width: 6),
+                        Text('Voltar', style: GoogleFonts.inter(color: Colors.white, fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                Text("Erro ao carregar os dados:", style: GoogleFonts.inter(color: Colors.white)),
+                const SizedBox(height: 8),
+                Text(_error!, style: GoogleFonts.inter(color: Colors.redAccent)),
+                const SizedBox(height: 20),
+                ElevatedButton(onPressed: _loadData, child: const Text("Tentar novamente")),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    final report = _detail!;
-    final status = report['status'] ?? 'Desconhecido';
-    final title = report['category'] ?? 'Sem título';
-    final description = report['description'] ?? '';
-    final location = report['local'] ?? '';
-    final formattedDate = _formatDate();
+    // dados carregados com sucesso
+    final reportMap = _detail ?? {};
+    final statusRaw = (reportMap['status'] ?? '').toString();
+    final status = statusRaw.isNotEmpty ? statusRaw : (widget.report['status']?.toString() ?? 'ABERTO');
+
+    final category = reportMap['category'] ?? reportMap['title'] ?? widget.report['category'] ?? widget.report['title'] ?? 'Sem título';
+    final description = reportMap['description'] ?? widget.report['description'] ?? '';
+    final location = reportMap['local'] ?? reportMap['location'] ?? widget.report['local'] ?? widget.report['location'] ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFF131313),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Voltar
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Row(
-                  children: [
-                    const Icon(Icons.arrow_back, color: Colors.white),
-                    const SizedBox(width: 6),
-                    Text('Voltar',
-                        style: GoogleFonts.inter(
-                            color: Colors.white, fontSize: 16)),
-                  ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                      const SizedBox(width: 6),
+                      Text('Voltar', style: GoogleFonts.inter(color: Colors.white, fontSize: 16)),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
 
-              // STATUS + DATA
+              // Card superior com status e data
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
                   color: const Color(0xFF9747FF),
                   borderRadius: BorderRadius.circular(16),
@@ -158,24 +201,19 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: _statusColor(status),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         status,
-                        style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12),
+                        style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
                     Text(
-                      formattedDate,
-                      style: GoogleFonts.inter(
-                          color: Colors.white70, fontSize: 13),
+                      _formatDateFromDetail(),
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
                     ),
                   ],
                 ),
@@ -183,7 +221,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
               const SizedBox(height: 20),
 
-              // CARD PRINCIPAL
+              // Card principal com descrição e imagens
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -191,113 +229,115 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   color: Colors.black.withOpacity(0.35),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      style: GoogleFonts.inter(
-                          color: Colors.white70, fontSize: 14, height: 1.4),
-                    ),
-                    const SizedBox(height: 16),
-                    if (location.isNotEmpty)
-                      Text(
-                        'Local: $location',
-                        style: GoogleFonts.inter(
-                            color: const Color(0xFF9747FF), fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                    const SizedBox(height: 20),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // título = category
+                  Text(
+                    category,
+                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(description, style: GoogleFonts.inter(color: Colors.white70, fontSize: 14, height: 1.4)),
+                  const SizedBox(height: 16),
 
-                    // FOTOS
-                    if (_photos.isNotEmpty)
-                      SizedBox(
-                        height: 140,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _photos.length,
-                          itemBuilder: (context, index) {
-                            final url = _toPhotoUrl(_photos[index]);
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  url,
-                                  width: 140,
-                                  height: 140,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: 140,
-                                      height: 140,
-                                      color: Colors.white10,
-                                      child: const Icon(Icons.broken_image,
-                                          color: Colors.white54),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                  if (location.toString().isNotEmpty)
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Local: ',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF9747FF),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          TextSpan(
+                            text: location.toString(),
+                            style: GoogleFonts.inter(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+
+                  const SizedBox(height: 20),
+
+                  // Galeria de imagens
+                  if (_photos.isNotEmpty)
+                    SizedBox(
+                      height: 140,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _photos.length,
+                        itemBuilder: (context, index) {
+                          final photoRaw = _photos[index];
+                          final url = _toPhotoUrl(photoRaw);
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                url,
+                                width: 140,
+                                height: 140,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(width: 140, height: 140, color: Colors.white10, child: const Icon(Icons.broken_image, color: Colors.white54));
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ]),
               ),
 
               const SizedBox(height: 20),
 
-              // DEVOLUTIVA
+              // Mensagens / devolutivas do ADM (usa senderName e sendDate)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Devolutiva:',
-                        style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16)),
-                    const SizedBox(height: 12),
-                    if (_messages.isEmpty)
-                      Text('Nenhuma mensagem do admin.',
-                          style: GoogleFonts.inter(color: Colors.white54))
-                    else
-                      ..._messages.map(
-                        (msg) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.message_rounded,
-                                  size: 18, color: Color(0xFF9747FF)),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(msg,
-                                    style: GoogleFonts.inter(
-                                        color: Colors.white70, fontSize: 14)),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.35), borderRadius: BorderRadius.circular(16)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Devolutiva:', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  if (_messages.isEmpty)
+                    Text('Nenhuma mensagem do admin.', style: GoogleFonts.inter(color: Colors.white54))
+                  else
+                    ..._messages.map((msg) {
+                      final author = msg['senderName'] ?? msg['sender'] ?? 'Administrador';
+                      final text = msg['message'] ?? msg['text'] ?? '';
+                      final sendDateRaw = msg['sendDate'] ?? msg['sendAt'] ?? msg['createdAt'] ?? msg['date'];
+                      final formattedSendDate = _formatMessageDate(sendDateRaw?.toString());
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Icon(Icons.message_rounded, size: 18, color: Color(0xFF9747FF)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              RichText(
+                                text: TextSpan(children: [
+                                  TextSpan(text: "$author", style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                  if (formattedSendDate.isNotEmpty) TextSpan(text: " • $formattedSendDate", style: GoogleFonts.inter(color: Colors.white54, fontSize: 12)),
+                                ]),
                               ),
-                            ],
+                              const SizedBox(height: 6),
+                              Text(text, style: GoogleFonts.inter(color: Colors.white70, fontSize: 14)),
+                            ]),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
+                        ]),
+                      );
+                    }),
+                ]),
               ),
+
+              const SizedBox(height: 40),
             ],
           ),
         ),
