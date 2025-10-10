@@ -41,7 +41,6 @@ class ApiService {
     required List<File> images,
   }) async {
     try {
-      // Recupera o usuário logado do SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userString = prefs.getString("user");
 
@@ -52,7 +51,6 @@ class ApiService {
       final user = jsonDecode(userString);
       final studentId = user['id'];
 
-      // Monta o DTO em JSON
       final Map<String, dynamic> dto = {
         "description": description,
         "category_id": categoryId,
@@ -63,27 +61,21 @@ class ApiService {
       final uri = Uri.parse("$baseUrl/problemas");
       final request = http.MultipartRequest("POST", uri);
 
-      // Campo "dto" como string JSON
       request.fields["dto"] = jsonEncode(dto);
 
-      // Adiciona cada imagem à requisição
       for (File image in images) {
         request.files.add(
           await http.MultipartFile.fromPath("photos", image.path),
         );
       }
 
-      // Envia a requisição
       final response = await request.send();
-
-      // Converte o corpo da resposta para string
       final responseBody = await response.stream.bytesToString();
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception("Erro ao enviar reporte: $responseBody");
       }
 
-      // Caso sucesso, você pode fazer algo com o responseBody se necessário
       print("Reporte enviado com sucesso: $responseBody");
     } catch (e) {
       throw Exception("Erro ao enviar o reporte: $e");
@@ -106,9 +98,7 @@ class ApiService {
       final user = jsonDecode(userString);
       final studentId = user['id'];
 
-      final url = Uri.parse(
-        "https://restapi.santosdev.site/problemas/user/$studentId",
-      );
+      final url = Uri.parse("$baseUrl/problemas/user/$studentId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -129,7 +119,7 @@ class ApiService {
     }
   }
 
-/// =============================
+  /// =============================
   /// BUSCAR DETALHES DO PROBLEMA
   /// =============================
   static Future<Map<String, dynamic>> fetchProblemDetail(int problemId) async {
@@ -153,7 +143,7 @@ class ApiService {
   }
 
   /// =============================
-  /// BUSCAR FOTOS DO PROBLEMA
+  /// BUSCAR FOTOS DO PROBLEMA (AJUSTADO)
   /// =============================
   static Future<List<String>> fetchProblemPhotos(int problemId) async {
     final url = Uri.parse("$baseUrl/problemas/photos/$problemId");
@@ -162,48 +152,51 @@ class ApiService {
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
 
+      // ✅ Caso da sua API: {"problemId": 20010, "photosUrl": [ ... ]}
+      if (body is Map && body["photosUrl"] is List) {
+        return (body["photosUrl"] as List).map((e) => e.toString()).toList();
+      }
+
+      // ✅ Mantém compatibilidade com outros formatos
       if (body is List) {
         return body.map((e) => e.toString()).toList();
       } else if (body is Map && body["data"] is List) {
         return (body["data"] as List).map((e) => e.toString()).toList();
       } else if (body is Map && body.containsKey("photos")) {
         return (body["photos"] as List).map((e) => e.toString()).toList();
-      } else {
-        return [];
       }
+
+      return [];
     } else {
       throw Exception("Erro ao buscar fotos do problema: ${response.body}");
     }
   }
 
-  // =============================
-// BUSCAR MENSAGENS DO PROBLEMA (retorna lista de maps)
-// =============================
-static Future<List<Map<String, dynamic>>> fetchProblemMessages(int problemId) async {
-  final url = Uri.parse("$baseUrl/messages/problem/$problemId");
-  final response = await http.get(url);
-  if (response.statusCode == 200) {
-    final body = jsonDecode(response.body);
-    List<dynamic> list;
-    if (body is List) {
-      list = body;
-    } else if (body is Map && body["data"] is List) {
-      list = body["data"];
+  /// =============================
+  /// BUSCAR MENSAGENS DO PROBLEMA
+  /// =============================
+  static Future<List<Map<String, dynamic>>> fetchProblemMessages(int problemId) async {
+    final url = Uri.parse("$baseUrl/messages/problem/$problemId");
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      List<dynamic> list;
+      if (body is List) {
+        list = body;
+      } else if (body is Map && body["data"] is List) {
+        list = body["data"];
+      } else {
+        return [];
+      }
+
+      return list.map<Map<String, dynamic>>((e) {
+        if (e is Map<String, dynamic>) return Map<String, dynamic>.from(e);
+        if (e is Map) return Map<String, dynamic>.from(e.cast<String, dynamic>());
+        return {"message": e.toString()};
+      }).toList();
     } else {
-      // resposta inesperada -> retorna lista vazia
-      return [];
+      throw Exception("Erro ao buscar mensagens do problema: ${response.body}");
     }
-
-    // garante que cada item seja Map<String,dynamic>
-    return list.map<Map<String, dynamic>>((e) {
-      if (e is Map<String, dynamic>) return Map<String, dynamic>.from(e);
-      if (e is Map) return Map<String, dynamic>.from(e.cast<String, dynamic>());
-      return {"message": e.toString()};
-    }).toList();
-  } else {
-    throw Exception("Erro ao buscar mensagens do problema: ${response.body}");
   }
-}
-
-
 }
