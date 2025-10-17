@@ -76,29 +76,17 @@ class _LoginPageState extends State<LoginPage> {
             height: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/login-bg.jpg'),
+                image: AssetImage('assets/login-bg2.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
           ),
           
-          // Gradiente com Blur por cima da imagem de fundo
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [ Color(0xFF9360FF)  .withOpacity(0.6), Colors.black.withOpacity(1.0)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              backgroundBlendMode: BlendMode.darken,
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // Aplicando o efeito de blur
-              child: Container(
-                color: Colors.transparent,
-              ),
+          // Blur por cima da imagem de fundo
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0), // Aplicando o efeito de blur
+            child: Container(
+              color: Colors.transparent, // Fundo transparente após o blur
             ),
           ),
           
