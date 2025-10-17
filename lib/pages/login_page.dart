@@ -82,13 +82,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
           
-          // Blur por cima da imagem de fundo
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0), // Aplicando o efeito de blur
-            child: Container(
-              color: Colors.transparent, // Fundo transparente após o blur
-            ),
-          ),
+
           
           // Conteúdo do login
           SafeArea(
@@ -97,11 +91,11 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 200),
+                  const SizedBox(height: 170),
                   Text(
                     'Faça login',
                     style: GoogleFonts.inter(
-                      fontSize: 55,
+                      fontSize: 53,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -170,7 +164,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 50),
 
                   // Botão de login
                   Center(

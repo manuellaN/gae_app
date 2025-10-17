@@ -121,11 +121,11 @@ class TermosUsoPage extends StatelessWidget {
                 ),
                 _buildClausula(
                   '10. Disposições Finais',
-                  '• Lei Aplicável: Estes Termos de Uso são regidos pelas leis do [país ou estado], independentemente de qualquer princípio de conflitos de leis.\n• Resolução de Conflitos: Qualquer disputa decorrente da utilização do sistema será resolvida por meio de arbitragem, conforme as regras estabelecidas pela [instituição ou órgão competente].',
+                  '• Lei Aplicável: Estes Termos de Uso são regidos pelas leis do Brasil, independentemente de qualquer princípio de conflitos de leis.\n• Resolução de Conflitos: Qualquer disputa decorrente da utilização do sistema será resolvida por meio de arbitragem, conforme as regras estabelecidas pelo Superior Tribunal de Justiça.',
                 ),
                 _buildClausula(
                   '11. Aceitação dos Termos',
-                  'Ao acessar ou utilizar o sistema, você reconhece que leu, entendeu e concorda com estes Termos de Uso. Se não concordar com os Termos, não utilize o sistema.\n\nSe tiver dúvidas sobre estes Termos de Uso, entre em contato conosco através de gaesystem@gmail.com.',
+                  'Ao acessar ou utilizar o sistema, você reconhece que leu, entendeu e concorda com estes Termos de Uso. Se não concordar com os Termos, não utilize o sistema.\n\nSe tiver dúvidas sobre estes Termos de Uso, entre em contato conosco através de gaesystem@gmail.com',
                 ),
               ],
             ),

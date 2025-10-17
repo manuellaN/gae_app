@@ -285,6 +285,22 @@ class _FazerReportPageState extends State<FazerReportPage> {
                     width: 140,
                     height: 48,
                     child: ElevatedButton(
+                      onPressed: _showCancelDialog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white10,
+                        foregroundColor: Colors.white54,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: Text('Cancelar', style: GoogleFonts.inter(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  SizedBox(
+                    width: 140,
+                    height: 48,
+                    child: ElevatedButton(
                       onPressed: _isSending ? null : _sendReport,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
@@ -297,22 +313,6 @@ class _FazerReportPageState extends State<FazerReportPage> {
                       child: _isSending
                           ? const CircularProgressIndicator(color: Colors.white)
                           : Text('Confirmar', style: GoogleFonts.inter(fontSize: 16)),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  SizedBox(
-                    width: 140,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _showCancelDialog,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white10,
-                        foregroundColor: Colors.white54,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: Text('Cancelar', style: GoogleFonts.inter(fontSize: 16)),
                     ),
                   ),
                 ],
